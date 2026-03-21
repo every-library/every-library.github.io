@@ -519,9 +519,8 @@ async function handleBarcode() {
       await doReturn(val);
     } else {
       if (bk.status==='대출중') {
-        if (S.loans.some(l=>l.bookCode===val)) {
-          await doReturn(val);
-          return;
+        await doReturn(val);
+        return;
       }
       if (bk.status!=='대출가능') { ld(false); alert2('⚠️','대출할 수 없는 도서입니다.','상태: '+bk.status); return; }
       await doLoan(val);
