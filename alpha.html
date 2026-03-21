@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>도서 통합 관리 시스템</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Malgun Gothic', sans-serif; display: flex; gap: 20px; padding: 20px; margin: 0; background: #f9f9f9; height: 100vh; }
+        
+        /* Layout */
+        .left-panel { width: 320px; flex-shrink: 0; border: 1px solid #ccc; background: #fff; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .right-panel { flex-grow: 1; border: 1px solid #ccc; background: #fff; padding: 20px; overflow-y: auto; }
+
+        /* Left UI */
+        .profile-box { border: 1px solid #ddd; padding: 15px; text-align: center; position: relative; }
+        .profile-icon { font-size: 60px; color: #aaa; }
+        .status-info { font-size: 14px; line-height: 2; margin-top: 10px; text-align: left; border-top: 1px solid #eee; padding-top: 10px; }
+        
+        .input-area { display: flex; gap: 2px; height: 35px; }
+        #main-input { flex: 1; border: 2px solid #333; padding-left: 10px; }
+        .btn-blue { background: #5073FB; color: white; border: none; padding: 0 15px; cursor: pointer; font-weight: bold; }
+        
+        .menu-btns button { width: 100%; padding: 12px; margin-top: 8px; background: #5073FB; color: white; border: none; cursor: pointer; font-size: 15px; }
+
+        /* Right UI */
+        .header-date { border: 1px solid #333; padding: 15px; font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 20px; }
+        .red { color: #FF4D4D; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #333; padding: 8px; text-align: center; }
+        th { background: #f2f2f2; }
+        .bg-yellow { background-color: #FFF2A8; }
+        
+        /* Management UI */
+        .admin-section { display: none; }
+        .active { display: block; }
+        .form-group { margin-bottom: 10px; }
+        .form-group input, .form-group select { padding: 5px; width: 200px; }
+
+        /* Modal */
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 9999; }
+        .modal-content { background: #fff; padding: 20px; border-radius: 5px; text-align: center; border: 2px solid #333; }
+    </style>
+</head>
+<body>
+
+<div class="left-panel">
+    <div class="profile-box">
+        <div class="profile-icon">👤</div>
+        <div id="m-info-text">
+            <p id="m-group">그룹/식별값</p>
+            <p id="m-name">이름</p>
+            <p id="m-code">회원코드</p>
+        </div>
+        <div class="status-info">
+            대출가능 여부 : <span id="s-can">O</span><br>
+            연체 일수 : [ <span id="s-overdue">0</span> ] 일<br>
+            대출 가능 권수 : [ <span id="s-count">0</span> ] 권
+        </div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="main-input" placeholder="바코드 입력" autofocus>
+        <button class="btn-blue" onclick="processInput()">입력</button>
+    </div>
+
+    <div class="menu-btns">
+        <button onclick="authAction('book-mgmt')">도서 관리</button>
+        <button onclick="authAction('member-mgmt')">회원 관리</button>
+        <button onclick="authAction('sys-mgmt')">시스템 관리</button>
+        <button onclick="authAction('loan-status')">대출현황 조회</button>
+        <button onclick="goMain()" style="background:#666;">메인 화면</button>
+    </div>
+</div>
+
+<div class="right-panel">
+    <!-- 메인 대출 목록 -->
+    <div id="view-main" class="admin-section active">
+        <div class="header-date" id="date-header">
+            오늘은 <span class="red">2026-03-21(토)</span> 반납일자 <span class="red">2026-04-04(토)</span>
+        </div>
+        <table id="loan-table">
+            <thead>
+                <tr><th>순번</th><th>도서코드</th><th>도서명</th><th>대여일자</th><th>연체여부(일수)</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- 도서 관리 -->
+    <div id="view-book-mgmt" class="admin-section">
+        <h2>도서 관리</h2>
+        <div class="form-group">
+            <input type="text" id="b-barcode" placeholder="도서코드">
+            <input type="text" id="b-title" placeholder="도서명">
+            <input type="text" id="b-author" placeholder="저자">
+            <button onclick="saveBook()">등록/수정</button>
+        </div>
+        <table id="book-list-table">
+            <thead><tr><th>코드</th><th>도서명</th><th>저자</th><th>상태</th><th>삭제</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- 회원 관리 -->
+    <div id="view-member-mgmt" class="admin-section">
+        <h2>회원 관리</h2>
+        <div class="form-group">
+            <input type="text" id="m-barcode" placeholder="회원코드">
+            <input type="text" id="m-name-in" placeholder="이름">
+            <input type="text" id="m-group-in" placeholder="식별값(학번)">
+            <button onclick="saveMember()">등록/수정</button>
+        </div>
+        <table id="member-list-table">
+            <thead><tr><th>코드</th><th>이름</th><th>식별값</th><th>상태</th><th>삭제</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 공용 모달 -->
+<div id="modal">
+    <div class="modal-content">
+        <p id="modal-msg"></p>
+        <input type="password" id="modal-pw" style="display:none;" placeholder="비밀번호">
+        <br><br>
+        <button class="btn-blue" id="modal-ok">확인 (Enter)</button>
+    </div>
+</div>
+
+<script>
+    const API_BASE = "https://library-api.wella-editor.workers.dev/api";
+    let curMember = null;
+
+    // 초기화: 날짜 표시
+    function updateDates() {
+        const now = new Date();
+        const future = new Date(now.getTime() + (14 * 24 * 60 * 60 * 1000));
+        const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        document.getElementById('date-header').innerHTML = `오늘은 <span class="red">${fmt(now)}</span> 반납일자 <span class="red">${fmt(future)}</span>`;
+    }
+    updateDates();
+
+    // 입력 처리 (스캔)
+    async function processInput() {
+        const val = document.getElementById('main-input').value;
+        if(!val) return;
+        document.getElementById('main-input').value = "";
+
+        const res = await fetch(`${API_BASE}/scan`, {
+            method: 'POST',
+            body: JSON.stringify({ barcode: val, currentMemberBarcode: curMember ? curMember.barcode : null })
+        });
+        const data = await res.json();
+        
+        if(data.error) return showAlert(data.error);
+        
+        if(data.type === "MEMBER") {
+            curMember = data.member;
+            renderMember(data.member, data.loans);
+        } else {
+            showAlert(data.message);
+            if(curMember) location.reload(); // 간단하게 갱신
+        }
+    }
+
+    function renderMember(m, loans) {
+        document.getElementById('m-group').innerText = m.group_val;
+        document.getElementById('m-name').innerText = m.name;
+        document.getElementById('m-code').innerText = m.barcode;
+        document.getElementById('s-can').innerText = m.canLoan;
+        document.getElementById('s-overdue').innerText = m.maxOverdueDays;
+        document.getElementById('s-count').innerText = m.max_loans - m.currentLoanCount;
+
+        const tbody = document.querySelector("#loan-table tbody");
+        tbody.innerHTML = loans.map((l, i) => `
+            <tr class="${l.overdueDays > 0 ? 'bg-yellow' : ''}">
+                <td>${i+1}</td><td>${l.bookcode}</td><td>${l.title}</td><td>${l.loan_date}</td>
+                <td class="${l.overdueDays > 0 ? 'red' : ''}">${l.overdueDays > 0 ? 'O('+l.overdueDays+'일)' : 'X'}</td>
+            </tr>
+        `).join('');
+    }
+
+    // 관리자 인증 후 액션
+    function authAction(target) {
+        const pw = prompt("관리자 비밀번호를 입력하세요.");
+        fetch(`${API_BASE}/auth`, {
+            method: 'POST',
+            body: JSON.stringify({ password: pw })
+        }).then(r => r.json()).then(data => {
+            if(data.success) showView(target);
+            else alert("인증 실패");
+        });
+    }
+
+    function showView(id) {
+        document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+        document.getElementById(`view-${id}`).classList.add('active');
+        if(id === 'book-mgmt') loadBooks();
+        if(id === 'member-mgmt') loadMembers();
+    }
+
+    function goMain() {
+        document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+        document.getElementById('view-main').classList.add('active');
+    }
+
+    // 도서 저장
+    async function saveBook() {
+        const b = {
+            barcode: document.getElementById('b-barcode').value,
+            title: document.getElementById('b-title').value,
+            author: document.getElementById('b-author').value
+        };
+        await fetch(`${API_BASE}/books`, { method: 'POST', body: JSON.stringify(b) });
+        loadBooks();
+    }
+
+    async function loadBooks() {
+        const res = await fetch(`${API_BASE}/books`);
+        const data = await res.json();
+        document.querySelector("#book-list-table tbody").innerHTML = data.map(b => `
+            <tr><td>${b.barcode}</td><td>${b.title}</td><td>${b.author}</td><td>${b.status}</td>
+            <td><button onclick="deleteItem('books', '${b.barcode}')">X</button></td></tr>
+        `).join('');
+    }
+
+    // 회원 저장
+    async function saveMember() {
+        const m = {
+            barcode: document.getElementById('m-barcode').value,
+            name: document.getElementById('m-name-in').value,
+            group_val: document.getElementById('m-group-in').value
+        };
+        await fetch(`${API_BASE}/members`, { method: 'POST', body: JSON.stringify(m) });
+        loadMembers();
+    }
+
+    async function loadMembers() {
+        const res = await fetch(`${API_BASE}/members`);
+        const data = await res.json();
+        document.querySelector("#member-list-table tbody").innerHTML = data.map(m => `
+            <tr><td>${m.barcode}</td><td>${m.name}</td><td>${m.group_val}</td><td>${m.status}</td>
+            <td><button onclick="deleteItem('members', '${m.barcode}')">X</button></td></tr>
+        `).join('');
+    }
+
+    async function deleteItem(type, code) {
+        if(!confirm("삭제하시겠습니까?")) return;
+        await fetch(`${API_BASE}/${type}?barcode=${code}`, { method: 'DELETE' });
+        type === 'books' ? loadBooks() : loadMembers();
+    }
+
+    function showAlert(msg) {
+        document.getElementById('modal-msg').innerText = msg;
+        document.getElementById('modal').style.display = 'flex';
+        document.getElementById('modal-ok').onclick = () => { document.getElementById('modal').style.display = 'none'; document.getElementById('main-input').focus(); };
+    }
+
+    // 엔터키 처리
+    window.onkeydown = e => {
+        if(e.key === 'Enter') {
+            if(document.getElementById('modal').style.display === 'flex') document.getElementById('modal-ok').click();
+            else if(document.activeElement.id === 'main-input') processInput();
+        }
+    }
+</script>
+</body>
+</html>
