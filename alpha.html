@@ -520,11 +520,8 @@ async function handleBarcode() {
     } else {
       if (bk.status==='대출중') {
         if (S.loans.some(l=>l.bookCode===val)) {
-          ld(false);
-          confirm2('🔄','반납 처리','이 회원의 대출 도서입니다. 반납 처리하시겠습니까?', async ok=>{ if(ok){ld(true);await doReturn(val);} });
+          await doReturn(val);
           return;
-        }
-        ld(false); alert2('⚠️','다른 회원이 대출 중인 도서입니다.','도서: '+bk.title); return;
       }
       if (bk.status!=='대출가능') { ld(false); alert2('⚠️','대출할 수 없는 도서입니다.','상태: '+bk.status); return; }
       await doLoan(val);
@@ -583,8 +580,16 @@ async function doReturn(bookCode) {
     const r=await apiPost('returnBook',{bookCode});
     ld(false);
     if (r.success) {
-      toast(r.message||'반납 완료', r.overdueDays>0?'wn':'ok');
-      if (S.member&&r.memberCode===S.member.code) { if(r.memberUpdate)selectMember(r.memberUpdate); else refreshMember(); }
+      toast(r.message || '반납 완료', r.overdueDays > 0 ? 'wn' : 'ok');
+    
+      if (r.memberUpdate) {
+        selectMember(r.memberUpdate);
+      } else if (r.memberCode) {
+        const mr = await apiGet('getMember', { code: r.memberCode }).catch(() => null);
+        if (mr && mr.success) selectMember(mr.data);
+      } else {
+        refreshMember();
+      }
     } else alert2('⚠️','반납 실패',r.message||'');
   } catch(e){ ld(false); alert2('🔴','오류',e.message||''); }
 }
