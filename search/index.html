@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>도서검색</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans KR', sans-serif; background: #fff; color: #111; min-height: 100vh; }
+
+/* ── 헤더 ── */
+.header {
+  text-align: center;
+  padding: 36px 20px 28px;
+  position: relative;
+}
+.header h1 {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 3px;
+}
+.header h1::after {
+  content: '·';
+  color: #3949ab;
+  font-size: 32px;
+  line-height: 1;
+  margin-top: -4px;
+}
+
+/* ── 검색바 ── */
+.search-wrap {
+  max-width: 860px;
+  margin: 0 auto 0;
+  padding: 0 20px 28px;
+}
+.search-box {
+  display: flex;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.search-box:focus-within { border-color: #3949ab; }
+
+.search-type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border-right: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  min-width: 90px;
+  position: relative;
+}
+.search-type select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+}
+.search-type .arrow { font-size: 10px; color: #888; }
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-family: 'Noto Sans KR', sans-serif;
+  padding: 14px 12px;
+  background: #fff;
+  color: #111;
+  min-width: 0;
+}
+.search-clear {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #bbb;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.search-clear:hover { color: #888; }
+.search-clear.show { display: flex; }
+
+.search-btn {
+  background: #3949ab;
+  color: #fff;
+  border: none;
+  padding: 0 26px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Noto Sans KR', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  transition: background .15s;
+}
+.search-btn:hover { background: #1a237e; }
+.search-btn svg { width: 17px; height: 17px; }
+
+/* ── 결과 영역 ── */
+.result-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px 60px;
+}
+
+/* 탭 */
+.tab-bar {
+  display: flex;
+  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 20px;
+}
+.tab-item {
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #888;
+  border: none;
+  background: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  font-family: 'Noto Sans KR', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color .15s;
+}
+.tab-item.on {
+  color: #1a237e;
+  border-bottom-color: #1a237e;
+}
+.tab-item .cnt {
+  font-size: 14px;
+  font-weight: 900;
+  color: #3949ab;
+}
+.tab-item:not(.on) .cnt { color: #aaa; }
+
+/* 결과 메타 */
+.result-meta {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+.result-meta strong { color: #3949ab; font-weight: 700; }
+
+/* 정렬/보기 */
+.result-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.ctrl-select {
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer;
+  outline: none;
+  background: #fff;
+  color: #333;
+}
+.ctrl-select:focus { border-color: #3949ab; }
+.view-btn {
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #888;
+  transition: all .15s;
+}
+.view-btn.on { border-color: #3949ab; background: #e8eaf6; color: #3949ab; }
+
+/* 책 목록 */
+.book-list { display: flex; flex-direction: column; gap: 0; }
+
+.book-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background .1s;
+  border-radius: 4px;
+}
+.book-item:hover { background: #fafafa; padding-left: 8px; }
+
+/* 썸네일 */
+.book-thumb {
+  width: 100px;
+  height: 140px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  background: #f0f0f0;
+  box-shadow: 2px 2px 6px rgba(0,0,0,.12);
+}
+.book-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.book-thumb .no-img {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #bbb;
+  text-align: center;
+  padding: 8px;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+.status-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+.sb-ok   { background: rgba(46,125,50,.88); }
+.sb-out  { background: rgba(198,40,40,.82); }
+.sb-etc  { background: rgba(100,100,100,.82); }
+
+/* 책 정보 */
+.book-info { flex: 1; min-width: 0; }
+.book-type-tag {
+  display: inline-block;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  padding: 2px 7px;
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 7px;
+}
+.book-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 5px;
+  line-height: 1.4;
+  word-break: break-all;
+}
+.book-title mark {
+  background: #fff9c4;
+  color: #111;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.book-meta {
+  font-size: 13px;
+  color: #666;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+.book-meta span { margin-right: 6px; }
+.book-meta .sep { color: #ccc; margin-right: 6px; }
+.book-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: #888;
+  margin-top: 6px;
+}
+.book-detail .di {
+  background: #f5f5f5;
+  border-radius: 3px;
+  padding: 3px 8px;
+}
+.book-reg {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 4px;
+}
+
+/* 그리드 뷰 */
+.book-list.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 20px;
+}
+.book-list.grid .book-item {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 14px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  gap: 10px;
+}
+.book-list.grid .book-item:hover { padding-left: 14px; border-color: #3949ab; }
+.book-list.grid .book-thumb { width: 90px; height: 126px; }
+.book-list.grid .book-type-tag { display: none; }
+.book-list.grid .book-title { font-size: 13px; }
+.book-list.grid .book-meta { justify-content: center; font-size: 12px; }
+.book-list.grid .book-detail { justify-content: center; }
+.book-list.grid .book-reg { display: none; }
+
+/* 로딩 / 빈 상태 */
+.state-box {
+  text-align: center;
+  padding: 60px 20px;
+  color: #aaa;
+  font-size: 15px;
+  line-height: 2;
+}
+.state-box .ico { font-size: 40px; margin-bottom: 12px; }
+.state-box strong { color: #555; }
+
+/* 스피너 */
+.spinner-wrap { display: none; text-align: center; padding: 60px 0; }
+.spinner-wrap.show { display: block; }
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid #e0e0e0;
+  border-top-color: #3949ab;
+  border-radius: 50%;
+  animation: sp .7s linear infinite;
+  display: inline-block;
+}
+@keyframes sp { to { transform: rotate(360deg); } }
+
+/* 페이지네이션 */
+.pages {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+.pgb {
+  min-width: 36px;
+  height: 36px;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  color: #444;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 500;
+  transition: all .15s;
+}
+.pgb.on { background: #3949ab; color: #fff; border-color: #3949ab; font-weight: 700; }
+.pgb:hover:not(.on) { background: #e8eaf6; border-color: #3949ab; }
+
+/* 상세 모달 */
+.ov { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+.ov.on { display: flex; }
+.detail-modal {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.18);
+  width: 100%;
+  max-width: 580px;
+  max-height: 88vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.dm-head {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 14px 0;
+}
+.dm-close {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #888;
+  line-height: 1;
+}
+.dm-close:hover { color: #333; }
+.dm-body {
+  padding: 0 28px 28px;
+  display: flex;
+  gap: 22px;
+}
+.dm-thumb {
+  width: 100px;
+  height: 140px;
+  flex-shrink: 0;
+  background: #f0f0f0;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 2px 2px 8px rgba(0,0,0,.12);
+}
+.dm-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.dm-thumb .no-img { width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:11px;color:#bbb;text-align:center;padding:8px;line-height:1.4;word-break:keep-all; }
+.dm-info { flex: 1; min-width: 0; }
+.dm-status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.dm-s-ok  { background: #e8f5e9; color: #2e7d32; }
+.dm-s-out { background: #ffebee; color: #c62828; }
+.dm-s-etc { background: #f5f5f5; color: #666; }
+.dm-title { font-size: 20px; font-weight: 900; color: #111; margin-bottom: 8px; line-height: 1.35; }
+.dm-rows { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+.dm-row { display: flex; gap: 8px; font-size: 13px; }
+.dm-label { color: #999; width: 60px; flex-shrink: 0; }
+.dm-val   { color: #333; font-weight: 500; word-break: break-all; }
+.dm-note  { margin-top: 14px; padding: 10px 12px; background: #f8f8f8; border-radius: 6px; font-size: 13px; color: #666; line-height: 1.6; }
+
+@media (max-width: 600px) {
+  .header h1 { font-size: 22px; }
+  .search-btn span { display: none; }
+  .tab-item { padding: 10px 14px; font-size: 13px; }
+  .book-thumb { width: 80px; height: 112px; }
+  .book-title { font-size: 15px; }
+  .dm-body { flex-direction: column; align-items: center; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>도서검색</h1>
+</div>
+
+<div class="search-wrap">
+  <div class="search-box">
+    <div class="search-type">
+      <span id="typeLabel">전체</span>
+      <span class="arrow">▾</span>
+      <select id="searchType" onchange="document.getElementById('typeLabel').textContent=this.options[this.selectedIndex].text">
+        <option value="all">전체</option>
+        <option value="title">도서명</option>
+        <option value="author">저자</option>
+        <option value="publisher">출판사</option>
+        <option value="category">분류</option>
+      </select>
+    </div>
+    <input type="text" class="search-input" id="searchInput" placeholder="검색어를 입력하세요"
+      oninput="document.getElementById('clearBtn').classList.toggle('show', this.value.length>0)"
+      onkeydown="if(event.key==='Enter')doSearch()">
+    <button class="search-clear" id="clearBtn" onclick="clearSearch()">✕</button>
+    <button class="search-btn" onclick="doSearch()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <span>검색</span>
+    </button>
+  </div>
+</div>
+
+<div class="result-wrap">
+  <!-- 초기 안내 -->
+  <div class="state-box" id="initState">
+    <div class="ico">📚</div>
+    도서명, 저자, 출판사 등으로 검색하세요.
+  </div>
+
+  <!-- 스피너 -->
+  <div class="spinner-wrap" id="spinner"><div class="spinner"></div></div>
+
+  <!-- 결과 -->
+  <div id="resultArea" style="display:none;">
+    <!-- 탭 -->
+    <div class="tab-bar" id="tabBar">
+      <button class="tab-item on" id="tabAll"   onclick="filterTab('all')">전체 <span class="cnt" id="cntAll">0</span></button>
+      <button class="tab-item"   id="tabOk"    onclick="filterTab('대출가능')">대출가능 <span class="cnt" id="cntOk">0</span></button>
+      <button class="tab-item"   id="tabOut"   onclick="filterTab('대출중')">대출중 <span class="cnt" id="cntOut">0</span></button>
+      <button class="tab-item"   id="tabEtc"   onclick="filterTab('기타')">기타 <span class="cnt" id="cntEtc">0</span></button>
+    </div>
+
+    <!-- 메타 -->
+    <div class="result-meta" id="resultMeta"></div>
+
+    <!-- 컨트롤 -->
+    <div class="result-controls">
+      <select class="ctrl-select" id="sortSel" onchange="applySort()">
+        <option value="rel">정확도순</option>
+        <option value="title">제목순</option>
+        <option value="author">저자순</option>
+      </select>
+      <select class="ctrl-select" id="pageSel" onchange="applyPageSize()">
+        <option value="10">10건씩 보기</option>
+        <option value="20">20건씩 보기</option>
+        <option value="50">50건씩 보기</option>
+      </select>
+      <button class="view-btn" id="vList" onclick="setView('list')" title="목록 보기">☰</button>
+      <button class="view-btn on" id="vGrid" onclick="setView('list')" title="그리드 보기">⊞</button>
+    </div>
+
+    <!-- 목록 -->
+    <div class="book-list" id="bookList"></div>
+    <div class="pages" id="pages"></div>
+  </div>
+
+  <!-- 결과 없음 -->
+  <div class="state-box" id="emptyState" style="display:none;">
+    <div class="ico">🔍</div>
+    <strong id="emptyKw"></strong>에 대한 검색 결과가 없습니다.<br>
+    다른 검색어나 검색 방법을 사용해보세요.
+  </div>
+</div>
+
+<!-- 상세 모달 -->
+<div class="ov" id="detailOv" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-modal">
+    <div class="dm-head"><button class="dm-close" onclick="closeDetail()">✕</button></div>
+    <div class="dm-body">
+      <div class="dm-thumb" id="dmThumb">
+        <div class="no-img" id="dmNoImg"></div>
+      </div>
+      <div class="dm-info">
+        <div class="dm-status" id="dmStatus"></div>
+        <div class="dm-title"  id="dmTitle"></div>
+        <div class="dm-rows">
+          <div class="dm-row"><span class="dm-label">저자</span><span class="dm-val" id="dmAuthor"></span></div>
+          <div class="dm-row"><span class="dm-label">출판사</span><span class="dm-val" id="dmPublisher"></span></div>
+          <div class="dm-row"><span class="dm-label">분류</span><span class="dm-val" id="dmCategory"></span></div>
+          <div class="dm-row"><span class="dm-label">도서코드</span><span class="dm-val" id="dmCode"></span></div>
+        </div>
+        <div class="dm-note" id="dmNote" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const API = 'https://library-api.wella-editor.workers.dev';
+
+// ── 상태 ──
+let allData   = [];   // 전체 검색 결과
+let filtered  = [];   // 탭/정렬 후
+let curPage   = 1;
+let pageSize  = 10;
+let curTab    = 'all';
+let curView   = 'list';
+let curKw     = '';
+let curType   = 'all';
+
+// ── 유틸 ──
+function e(s) { if(s==null)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function highlight(text, kw) {
+  if (!kw || !text) return e(text);
+  const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return e(text).replace(new RegExp(escaped, 'gi'), m => `<mark>${m}</mark>`);
+}
+
+function statusClass(s) {
+  if (s==='대출가능') return 'sb-ok';
+  if (s==='대출중')   return 'sb-out';
+  return 'sb-etc';
+}
+
+function isEtc(s) { return s!=='대출가능' && s!=='대출중'; }
+
+// ── API ──
+async function apiGet(action, params={}) {
+  const url = new URL(API);
+  url.searchParams.set('action', action);
+  Object.entries(params).forEach(([k,v])=>{ if(v!==undefined&&v!=='') url.searchParams.set(k,v); });
+  const r = await fetch(url.toString());
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+// ── 검색 ──
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('clearBtn').classList.remove('show');
+  document.getElementById('searchInput').focus();
+  document.getElementById('initState').style.display = 'block';
+  document.getElementById('resultArea').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'none';
+}
+
+async function doSearch() {
+  const kw   = document.getElementById('searchInput').value.trim();
+  const type = document.getElementById('searchType').value;
+
+  document.getElementById('clearBtn').classList.toggle('show', kw.length > 0);
+
+  curKw   = kw;
+  curType = type;
+  curPage = 1;
+  curTab  = 'all';
+
+  document.getElementById('initState').style.display  = 'none';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('resultArea').style.display = 'none';
+  document.getElementById('spinner').classList.add('show');
+
+  try {
+    const params = {};
+    if (kw) {
+      // 타입별 파라미터 매핑
+      if (type === 'all')       params.keyword   = kw;
+      else if (type === 'title')     params.keyword   = kw;
+      else if (type === 'author')    params.keyword   = kw;
+      else if (type === 'publisher') params.keyword   = kw;
+      else if (type === 'category')  params.keyword   = kw;
+    }
+
+    const r = await apiGet('getBooks', params);
+    document.getElementById('spinner').classList.remove('show');
+
+    if (!r.success) { showEmpty(kw); return; }
+
+    let data = r.data || [];
+
+    // 클라이언트 사이드 타입 필터
+    if (kw && type !== 'all') {
+      data = data.filter(b => {
+        const val = (b[typeField(type)]||'').toLowerCase();
+        return val.includes(kw.toLowerCase());
+      });
+    }
+
+    allData = data;
+
+    if (!allData.length) { showEmpty(kw); return; }
+
+    // 카운트
+    const cAll = allData.length;
+    const cOk  = allData.filter(b=>b.status==='대출가능').length;
+    const cOut = allData.filter(b=>b.status==='대출중').length;
+    const cEtc = allData.filter(b=>isEtc(b.status)).length;
+
+    document.getElementById('cntAll').textContent = cAll;
+    document.getElementById('cntOk').textContent  = cOk;
+    document.getElementById('cntOut').textContent = cOut;
+    document.getElementById('cntEtc').textContent = cEtc;
+
+    document.getElementById('resultArea').style.display = 'block';
+    setTab('all');
+  } catch(err) {
+    document.getElementById('spinner').classList.remove('show');
+    document.getElementById('initState').style.display = 'block';
+    document.getElementById('initState').innerHTML = `<div class="ico">⚠️</div>검색 중 오류가 발생했습니다.<br><small style="color:#aaa;">${err.message}</small>`;
+  }
+}
+
+function typeField(type) {
+  return { title:'title', author:'author', publisher:'publisher', category:'category' }[type] || 'title';
+}
+
+function showEmpty(kw) {
+  document.getElementById('spinner').classList.remove('show');
+  document.getElementById('emptyState').style.display = 'block';
+  document.getElementById('emptyKw').textContent = kw || '해당 조건';
+}
+
+// ── 탭 ──
+function filterTab(tab) { curTab=tab; curPage=1; setTab(tab); }
+
+function setTab(tab) {
+  curTab = tab;
+  ['all','대출가능','대출중','기타'].forEach((t,i) => {
+    const ids = ['tabAll','tabOk','tabOut','tabEtc'];
+    document.getElementById(ids[i]).classList.toggle('on', t===tab);
+  });
+
+  if (tab==='all')    filtered = [...allData];
+  else if (tab==='기타') filtered = allData.filter(b=>isEtc(b.status));
+  else                filtered = allData.filter(b=>b.status===tab);
+
+  applySort();
+}
+
+// ── 정렬 ──
+function applySort() {
+  const sort = document.getElementById('sortSel').value;
+  if (sort==='title')  filtered.sort((a,b)=>(a.title||'').localeCompare(b.title||''));
+  else if (sort==='author') filtered.sort((a,b)=>(a.author||'').localeCompare(b.author||''));
+  // rel: 원래 순서 유지
+  renderPage();
+}
+
+function applyPageSize() {
+  pageSize = parseInt(document.getElementById('pageSel').value);
+  curPage  = 1;
+  renderPage();
+}
+
+// ── 보기 전환 ──
+function setView(v) {
+  curView = v;
+  document.getElementById('bookList').classList.toggle('grid', v==='grid');
+  document.getElementById('vList').classList.toggle('on', v==='list');
+  document.getElementById('vGrid').classList.toggle('on', v==='grid');
+}
+
+// ── 렌더링 ──
+function renderPage() {
+  const total = filtered.length;
+  const totalPages = Math.ceil(total / pageSize);
+  if (curPage > totalPages && totalPages > 0) curPage = totalPages;
+
+  const start = (curPage-1)*pageSize;
+  const page  = filtered.slice(start, start+pageSize);
+
+  // 메타
+  const kw = curKw;
+  document.getElementById('resultMeta').innerHTML =
+    `전체 ${allData.length}건 중 <strong>${filtered.length}건</strong>의 검색결과` +
+    (kw ? ` [ 키워드: <strong>${e(kw)}</strong> ]` : '');
+
+  // 목록
+  const list = document.getElementById('bookList');
+  if (!page.length) {
+    list.innerHTML = '<div class="state-box" style="padding:40px 0;"><div class="ico">📭</div>이 탭에 해당하는 결과가 없습니다.</div>';
+    document.getElementById('pages').innerHTML = '';
+    return;
+  }
+
+  list.innerHTML = page.map(b => {
+    const sc = statusClass(b.status);
+    const kw = curKw;
+    return `<div class="book-item" onclick="openDetail(${JSON.stringify(b).replace(/"/g,'&quot;')})">
+      <div class="book-thumb">
+        <div class="no-img">${e(b.title)}</div>
+        <div class="status-badge ${sc}">${e(b.status)}</div>
+      </div>
+      <div class="book-info">
+        <span class="book-type-tag">단행본</span>
+        <div class="book-title">${highlight(b.title, kw)}</div>
+        <div class="book-meta">
+          <span>저자: ${highlight(b.author||'—', kw)}</span>
+          <span class="sep">|</span>
+          <span>출판사: ${highlight(b.publisher||'—', kw)}</span>
+        </div>
+        <div class="book-detail">
+          ${b.category ? `<span class="di">분류: ${e(b.category)}</span>` : ''}
+          <span class="di">도서코드: ${e(b.code)}</span>
+        </div>
+        ${b.note ? `<div class="book-reg" style="margin-top:5px;">비고: ${e(b.note)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // 페이지네이션
+  renderPages(totalPages);
+}
+
+function renderPages(total) {
+  const c = document.getElementById('pages');
+  if (total <= 1) { c.innerHTML=''; return; }
+  let h='';
+  const st=Math.max(1,curPage-4), en=Math.min(total,curPage+4);
+  if (st>1) { h+=`<button class="pgb" onclick="goPage(1)">1</button>`; if(st>2) h+=`<span class="pgb" style="border:none;cursor:default;">…</span>`; }
+  for (let p=st;p<=en;p++) h+=`<button class="pgb${p===curPage?' on':''}" onclick="goPage(${p})">${p}</button>`;
+  if (en<total) { if(en<total-1) h+=`<span class="pgb" style="border:none;cursor:default;">…</span>`; h+=`<button class="pgb" onclick="goPage(${total})">${total}</button>`; }
+  c.innerHTML=h;
+}
+
+function goPage(p) {
+  curPage = p;
+  renderPage();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── 상세 모달 ──
+function openDetail(b) {
+  const sc = b.status==='대출가능' ? 'dm-s-ok' : b.status==='대출중' ? 'dm-s-out' : 'dm-s-etc';
+  document.getElementById('dmStatus').textContent    = b.status;
+  document.getElementById('dmStatus').className      = 'dm-status ' + sc;
+  document.getElementById('dmTitle').textContent     = b.title;
+  document.getElementById('dmAuthor').textContent    = b.author    || '—';
+  document.getElementById('dmPublisher').textContent = b.publisher || '—';
+  document.getElementById('dmCategory').textContent  = b.category  || '—';
+  document.getElementById('dmCode').textContent      = b.code;
+  document.getElementById('dmNoImg').textContent     = b.title;
+  if (b.note) {
+    document.getElementById('dmNote').textContent    = b.note;
+    document.getElementById('dmNote').style.display  = 'block';
+  } else {
+    document.getElementById('dmNote').style.display  = 'none';
+  }
+  document.getElementById('detailOv').classList.add('on');
+}
+function closeDetail() { document.getElementById('detailOv').classList.remove('on'); }
+
+// ── 키보드 ──
+document.addEventListener('keydown', ev => {
+  if (ev.key==='Escape') closeDetail();
+});
+
+// ── 초기 포커스 ──
+document.getElementById('searchInput').focus();
+</script>
+</body>
+</html>
