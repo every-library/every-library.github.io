@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대출 조회</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans KR', sans-serif; background: #f4f5f8; color: #111; min-height: 100vh; }
+
+/* ── 헤더 ── */
+.header {
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+  padding: 20px 24px;
+  text-align: center;
+}
+.header h1 {
+  font-size: 22px;
+  font-weight: 900;
+  color: #1a237e;
+  letter-spacing: -0.5px;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 3px;
+}
+.header h1::after { content: '·'; color: #3949ab; font-size: 26px; line-height: 1; margin-top: -3px; }
+
+/* ── 검색 카드 ── */
+.search-card {
+  max-width: 560px;
+  margin: 32px auto 0;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  padding: 28px 28px 24px;
+}
+.search-card h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e8eaf6;
+}
+
+.field-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.field-row .fg { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.fl { font-size: 12px; font-weight: 700; color: #666; }
+.fc {
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: 'Noto Sans KR', sans-serif;
+  outline: none;
+  transition: border-color .2s;
+  background: #fff;
+}
+.fc:focus { border-color: #3949ab; }
+
+.search-btn {
+  width: 100%;
+  background: #3949ab;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Noto Sans KR', sans-serif;
+  margin-top: 6px;
+  transition: background .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.search-btn:hover { background: #1a237e; }
+.search-btn svg { width: 17px; height: 17px; }
+.hint { font-size: 11px; color: #aaa; text-align: center; margin-top: 10px; }
+
+/* ── 결과 영역 ── */
+.result-wrap {
+  max-width: 860px;
+  margin: 24px auto 60px;
+  padding: 0 16px;
+  display: none;
+}
+.result-wrap.show { display: block; }
+
+/* 회원 정보 카드 */
+.member-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  padding: 22px 24px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.mc-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #e8eaf6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.mc-icon svg { width: 30px; height: 30px; color: #3949ab; }
+
+.mc-info { flex: 1; min-width: 160px; }
+.mc-name { font-size: 20px; font-weight: 900; color: #111; margin-bottom: 3px; }
+.mc-sub  { font-size: 13px; color: #888; display: flex; gap: 10px; flex-wrap: wrap; }
+.mc-sub span { display: flex; align-items: center; gap: 4px; }
+
+.mc-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.stat-box {
+  text-align: center;
+  padding: 10px 18px;
+  border-radius: 10px;
+  min-width: 80px;
+}
+.stat-box .sn { font-size: 24px; font-weight: 900; line-height: 1; }
+.stat-box .sl { font-size: 11px; font-weight: 700; margin-top: 3px; }
+.sb-blue   { background: #e8eaf6; } .sb-blue .sn { color: #1a237e; } .sb-blue .sl { color: #5c6bc0; }
+.sb-green  { background: #e8f5e9; } .sb-green .sn { color: #2e7d32; } .sb-green .sl { color: #66bb6a; }
+.sb-red    { background: #ffebee; } .sb-red .sn { color: #c62828; } .sb-red .sl { color: #ef9a9a; }
+.sb-orange { background: #fff8e1; } .sb-orange .sn { color: #e65100; } .sb-orange .sl { color: #ffa726; }
+.sb-gray   { background: #f5f5f5; } .sb-gray .sn { color: #555; } .sb-gray .sl { color: #aaa; }
+
+/* 상태 배너 */
+.status-banner {
+  border-radius: 10px;
+  padding: 14px 20px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.6;
+}
+.banner-ok     { background: #e8f5e9; color: #1b5e20; border: 1.5px solid #a5d6a7; }
+.banner-warn   { background: #fff8e1; color: #e65100; border: 1.5px solid #ffe082; }
+.banner-danger { background: #ffebee; color: #b71c1c; border: 1.5px solid #ef9a9a; }
+.banner-gray   { background: #f5f5f5; color: #555; border: 1.5px solid #e0e0e0; }
+.banner-icon   { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+.banner-text strong { font-weight: 900; }
+
+/* 현재 대출 섹션 */
+.section {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.section-head {
+  padding: 14px 20px;
+  border-bottom: 2px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a237e;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.section-count {
+  font-size: 13px;
+  color: #888;
+  font-weight: 500;
+}
+
+/* 대출 카드 */
+.loan-cards { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+.loan-card {
+  border: 1.5px solid #eee;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  position: relative;
+  transition: border-color .15s;
+}
+.loan-card:hover { border-color: #c5cae9; }
+.loan-card.overdue  { border-color: #ef9a9a; background: #fffde7; }
+.loan-card.due-soon { border-color: #ffe082; background: #fffde7; }
+
+.lc-left { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.lc-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lc-code  { font-size: 12px; color: #aaa; }
+.lc-dates { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.lc-date  { font-size: 12px; color: #666; display: flex; gap: 4px; align-items: center; }
+.lc-date .lbl { color: #aaa; }
+
+.lc-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+.lc-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-overdue  { background: #ffebee; color: #c62828; }
+.badge-due-soon { background: #fff8e1; color: #e65100; }
+.badge-ok       { background: #e8f5e9; color: #2e7d32; }
+.lc-days { font-size: 12px; color: #888; text-align: right; }
+.lc-days strong { color: #e65100; font-weight: 700; }
+.lc-days.red strong { color: #c62828; }
+
+/* 이력 테이블 */
+.hist-wrap { overflow-x: auto; }
+.hist-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 520px; }
+.hist-table thead tr { background: #f8f9ff; }
+.hist-table th { padding: 11px 10px; font-weight: 700; color: #1a237e; border-bottom: 2px solid #e8eaf6; text-align: center; white-space: nowrap; }
+.hist-table td { padding: 10px 10px; border-bottom: 1px solid #f0f0f0; text-align: center; vertical-align: middle; color: #333; }
+.hist-table tbody tr:hover { background: #fafafa; }
+.hist-table .tdl { text-align: left; }
+.hist-table .ret-ok   td { color: #555; }
+.hist-table .ret-od   td { color: #c62828; }
+.chip { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+.chip-ok { background: #e8f5e9; color: #2e7d32; }
+.chip-od { background: #ffebee; color: #c62828; }
+.chip-bl { background: #e3f2fd; color: #1565c0; }
+
+/* 페이지네이션 */
+.pages { display: flex; justify-content: center; gap: 4px; padding: 14px 0 4px; flex-wrap: wrap; }
+.pgb { min-width: 32px; height: 32px; border: 1.5px solid #ddd; border-radius: 6px; background: #fff; color: #444; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: 'Noto Sans KR', sans-serif; }
+.pgb.on { background: #3949ab; color: #fff; border-color: #3949ab; font-weight: 700; }
+.pgb:hover:not(.on) { background: #e8eaf6; }
+
+/* 빈 상태 */
+.empty { text-align: center; padding: 32px 20px; color: #bbb; font-size: 14px; }
+.empty .ico { font-size: 32px; margin-bottom: 8px; }
+
+/* 스피너 */
+.spinner-wrap { display: none; text-align: center; padding: 40px 0; }
+.spinner-wrap.show { display: block; }
+.spinner { width: 34px; height: 34px; border: 3px solid #e0e0e0; border-top-color: #3949ab; border-radius: 50%; animation: sp .7s linear infinite; display: inline-block; }
+@keyframes sp { to { transform: rotate(360deg); } }
+
+/* 오류 */
+.error-box { background: #ffebee; border: 1.5px solid #ef9a9a; border-radius: 10px; padding: 16px 20px; color: #c62828; font-size: 14px; font-weight: 600; display: flex; gap: 8px; align-items: center; }
+
+@media (max-width: 600px) {
+  .search-card { margin: 20px 12px 0; padding: 20px 16px; }
+  .member-card { padding: 16px; gap: 14px; }
+  .mc-stats { gap: 8px; }
+  .stat-box { padding: 8px 12px; min-width: 68px; }
+  .field-row { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>대출 조회</h1>
+</div>
+
+<!-- 검색 카드 -->
+<div class="search-card" id="searchCard">
+  <h2>회원 정보 입력</h2>
+  <div class="field-row">
+    <div class="fg">
+      <label class="fl" id="idLabel">회원코드 / 학번</label>
+      <input type="text" class="fc" id="memberCode" placeholder="예) 9648A 또는 10301"
+        onkeydown="if(event.key==='Enter')doSearch()">
+    </div>
+    <div class="fg">
+      <label class="fl">이름</label>
+      <input type="text" class="fc" id="memberName" placeholder="이름을 입력하세요"
+        onkeydown="if(event.key==='Enter')doSearch()">
+    </div>
+  </div>
+  <button class="search-btn" onclick="doSearch()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    조회하기
+  </button>
+  <div class="hint">회원코드 또는 학번(식별값)으로 조회할 수 있습니다.</div>
+</div>
+
+<!-- 스피너 -->
+<div class="spinner-wrap" id="spinner"><div class="spinner"></div></div>
+
+<!-- 결과 -->
+<div class="result-wrap" id="resultWrap">
+
+  <!-- 오류 -->
+  <div class="error-box" id="errorBox" style="display:none;">
+    <span>⚠️</span><span id="errorMsg"></span>
+  </div>
+
+  <!-- 회원 카드 -->
+  <div class="member-card" id="memberCard" style="display:none;">
+    <div class="mc-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+    </div>
+    <div class="mc-info">
+      <div class="mc-name" id="mcName">—</div>
+      <div class="mc-sub">
+        <span id="mcIdVal"></span>
+        <span id="mcCode"></span>
+        <span id="mcGroup"></span>
+      </div>
+    </div>
+    <div class="mc-stats" id="mcStats"></div>
+  </div>
+
+  <!-- 상태 배너 -->
+  <div id="statusBanner" style="display:none;"></div>
+
+  <!-- 현재 대출 -->
+  <div class="section" id="secCurrent" style="display:none;">
+    <div class="section-head">
+      <span class="section-title">📖 현재 대출 중</span>
+      <span class="section-count" id="currentCount"></span>
+    </div>
+    <div class="loan-cards" id="currentLoans"></div>
+  </div>
+
+  <!-- 대출 이력 -->
+  <div class="section" id="secHistory" style="display:none;">
+    <div class="section-head">
+      <span class="section-title">📋 대출 이력</span>
+      <span class="section-count" id="histCount"></span>
+    </div>
+    <div class="hist-wrap">
+      <table class="hist-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>도서코드</th>
+            <th style="min-width:160px;">도서명</th>
+            <th>대출일</th>
+            <th>반납예정일</th>
+            <th>반납일</th>
+            <th>연체일수</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody id="histTbody"></tbody>
+      </table>
+    </div>
+    <div class="pages" id="histPages"></div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+const API    = 'https://library-api.wella-editor.workers.dev';
+const DAY_KO = ['일','월','화','수','목','금','토'];
+
+// ── 날짜 유틸 ──
+function kstNow()   { return new Date(Date.now() + 9*60*60*1000); }
+function todayYmd() { return kstNow().toISOString().slice(0,10); }
+function diff(a, b) {
+  if (!a||!b) return 0;
+  return Math.floor((new Date(b+'T00:00:00Z') - new Date(a+'T00:00:00Z')) / 86400000);
+}
+function fmt(ymd) {
+  if (!ymd) return '—';
+  const d = new Date(ymd+'T00:00:00Z');
+  return `${ymd}(${DAY_KO[d.getUTCDay()]})`;
+}
+function e(s) {
+  if (s==null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── 페이지네이션 상태 ──
+let histData = [], histPage = 1;
+const HIST_PS = 15;
+
+// ── API ──
+async function apiGet(action, params={}) {
+  const url = new URL(API);
+  url.searchParams.set('action', action);
+  Object.entries(params).forEach(([k,v])=>{ if(v!==undefined&&v!=='') url.searchParams.set(k,v); });
+  const r = await fetch(url.toString());
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+// ── 설정 로드 (식별값 라벨) ──
+async function loadCfg() {
+  try {
+    const r = await apiGet('getSettings');
+    if (r.success && r.data && r.data.idLabel) {
+      document.getElementById('idLabel').textContent = `회원코드 / ${r.data.idLabel}`;
+    }
+  } catch(_) {}
+}
+
+// ── 검색 ──
+async function doSearch() {
+  const code = document.getElementById('memberCode').value.trim();
+  const name = document.getElementById('memberName').value.trim();
+
+  if (!code && !name) {
+    shake(document.getElementById('memberCode'));
+    return;
+  }
+
+  // UI 초기화
+  document.getElementById('spinner').classList.add('show');
+  document.getElementById('resultWrap').classList.remove('show');
+  document.getElementById('errorBox').style.display    = 'none';
+  document.getElementById('memberCard').style.display  = 'none';
+  document.getElementById('statusBanner').style.display= 'none';
+  document.getElementById('secCurrent').style.display  = 'none';
+  document.getElementById('secHistory').style.display  = 'none';
+
+  try {
+    // 회원 조회 (코드 우선, 없으면 이름으로 재시도)
+    let memberRes = null;
+    if (code) {
+      memberRes = await apiGet('getMember', { code });
+    }
+    // 코드로 못 찾고 이름이 있으면 → 전체 회원에서 이름 매칭
+    if ((!memberRes || !memberRes.success) && name) {
+      const allRes = await apiGet('getMembers', { keyword: name });
+      if (allRes.success && allRes.data && allRes.data.length > 0) {
+        // 이름이 정확히 일치하는 사람 우선
+        const exact = allRes.data.find(m => m.name === name);
+        const target = exact || allRes.data[0];
+        memberRes = await apiGet('getMember', { code: target.code });
+      }
+    }
+
+    if (!memberRes || !memberRes.success) {
+      throw new Error(memberRes?.message || '해당 회원을 찾을 수 없습니다.');
+    }
+
+    const member = memberRes.data;
+
+    // 이름 불일치 체크 (코드로 찾았는데 이름이 다른 경우)
+    if (name && member.name !== name) {
+      throw new Error(`입력한 이름(${name})과 조회된 이름(${member.name})이 다릅니다.`);
+    }
+
+    // 대출 이력 조회
+    const loanRes = await apiGet('getLoanStatus', {
+      filter: 'history',
+      memberKeyword: member.code,
+    });
+
+    document.getElementById('spinner').classList.remove('show');
+    document.getElementById('resultWrap').classList.add('show');
+
+    renderMemberCard(member);
+    renderStatusBanner(member);
+    renderCurrentLoans(member, loanRes.data||[]);
+    renderHistory(loanRes.data||[]);
+
+  } catch(err) {
+    document.getElementById('spinner').classList.remove('show');
+    document.getElementById('resultWrap').classList.add('show');
+    document.getElementById('errorBox').style.display = 'flex';
+    document.getElementById('errorMsg').textContent   = err.message || '조회 중 오류가 발생했습니다.';
+  }
+}
+
+// ── 회원 카드 ──
+function renderMemberCard(m) {
+  document.getElementById('mcName').textContent = m.name;
+
+  const sub = document.getElementById('mcIdVal');
+  sub.innerHTML = m.idVal ? `<span>식별값: <strong>${e(m.idVal)}</strong></span>` : '';
+
+  document.getElementById('mcCode').innerHTML  = `<span>코드: <strong>${e(m.code)}</strong></span>`;
+  document.getElementById('mcGroup').innerHTML = m.group ? `<span>그룹: ${e(m.group)}</span>` : '';
+
+  // 통계 박스
+  const stats = document.getElementById('mcStats');
+  const avail = m.availCount ?? 0;
+  const cur   = m.currentLoanCount ?? 0;
+  const max   = m.maxLoan ?? 2;
+  const od    = m.maxOverdueDays ?? 0;
+
+  const availClass = avail > 0 ? 'sb-green' : 'sb-gray';
+  const statusClass = m.status === '정상' ? 'sb-blue' : m.status === '정지' ? 'sb-red' : 'sb-gray';
+  const odClass = od > 0 ? 'sb-red' : 'sb-gray';
+
+  stats.innerHTML = `
+    <div class="stat-box ${availClass}">
+      <div class="sn">${avail}</div>
+      <div class="sl">대출 가능 권수</div>
+    </div>
+    <div class="stat-box sb-blue">
+      <div class="sn">${cur} / ${max}</div>
+      <div class="sl">현재 / 최대</div>
+    </div>
+    <div class="stat-box ${statusClass}">
+      <div class="sn" style="font-size:16px;">${e(m.status)}</div>
+      <div class="sl">회원 상태</div>
+    </div>
+    ${od > 0 ? `<div class="stat-box ${odClass}"><div class="sn">${od}</div><div class="sl">최대 연체일</div></div>` : ''}
+  `;
+
+  document.getElementById('memberCard').style.display = 'flex';
+}
+
+// ── 상태 배너 ──
+function renderStatusBanner(m) {
+  const banner = document.getElementById('statusBanner');
+  const today  = todayYmd();
+  let html = '';
+
+  if (m.status === '정지') {
+    // 정지 해제까지 남은 일수 계산
+    if (m.suspendUntil) {
+      const remain = diff(today, m.suspendUntil);
+      if (remain > 0) {
+        html = `<div class="status-banner banner-danger">
+          <span class="banner-icon">🚫</span>
+          <div class="banner-text">
+            <strong>대출 정지 상태입니다.</strong><br>
+            연체로 인해 대출이 정지되었으며, <strong>${fmt(m.suspendUntil)}</strong>에 해제됩니다.
+            (앞으로 <strong>${remain}일</strong> 남음)
+          </div>
+        </div>`;
+      } else {
+        html = `<div class="status-banner banner-warn">
+          <span class="banner-icon">⚠️</span>
+          <div class="banner-text">
+            <strong>대출 정지 상태입니다.</strong> 정지 해제일이 지났으나 아직 처리 전입니다.
+          </div>
+        </div>`;
+      }
+    } else {
+      html = `<div class="status-banner banner-danger">
+        <span class="banner-icon">🚫</span>
+        <div class="banner-text"><strong>대출 정지 상태입니다.</strong> 관리자에게 문의하세요.</div>
+      </div>`;
+    }
+  } else if (m.status === '비활성') {
+    html = `<div class="status-banner banner-gray">
+      <span class="banner-icon">⭕</span>
+      <div class="banner-text"><strong>비활성 회원입니다.</strong> 대출이 제한됩니다.</div>
+    </div>`;
+  } else if (m.maxOverdueDays > 0) {
+    html = `<div class="status-banner banner-danger">
+      <span class="banner-icon">⏰</span>
+      <div class="banner-text">
+        <strong>연체 중인 도서가 있습니다.</strong><br>
+        최대 <strong>${m.maxOverdueDays}일</strong> 연체 중입니다. 반납 후 연체일수만큼 대출이 정지됩니다.
+      </div>
+    </div>`;
+  } else if ((m.availCount ?? 0) <= 0 && m.currentLoanCount > 0) {
+    html = `<div class="status-banner banner-warn">
+      <span class="banner-icon">📚</span>
+      <div class="banner-text">
+        <strong>대출 한도에 도달했습니다.</strong> 최대 ${m.maxLoan}권 중 ${m.currentLoanCount}권 대출 중입니다.
+      </div>
+    </div>`;
+  } else if (m.availCount > 0) {
+    html = `<div class="status-banner banner-ok">
+      <span class="banner-icon">✅</span>
+      <div class="banner-text">
+        <strong>대출 가능합니다.</strong> 현재 <strong>${m.availCount}권</strong> 더 대출할 수 있습니다.
+      </div>
+    </div>`;
+  }
+
+  if (html) {
+    banner.innerHTML = html;
+    banner.style.display = 'block';
+  }
+}
+
+// ── 현재 대출 ──
+function renderCurrentLoans(member, allLoans) {
+  const today = todayYmd();
+  const current = allLoans.filter(l => l.status === '대출중');
+
+  const sec = document.getElementById('secCurrent');
+  document.getElementById('currentCount').textContent = `${current.length}권`;
+
+  if (!current.length) {
+    document.getElementById('currentLoans').innerHTML = '<div class="empty"><div class="ico">📭</div>현재 대출 중인 도서가 없습니다.</div>';
+    sec.style.display = 'block';
+    return;
+  }
+
+  const html = current.map(l => {
+    const odDays  = l.dueDate ? Math.max(0, diff(l.dueDate, today)) : 0;
+    const remDays = l.dueDate ? diff(today, l.dueDate) : 0;
+    const isOd    = odDays > 0;
+    const isSoon  = !isOd && remDays >= 0 && remDays <= 3;
+
+    let cardClass = '';
+    let badge = '';
+    let daysInfo = '';
+
+    if (isOd) {
+      cardClass = 'overdue';
+      badge = `<span class="lc-badge badge-overdue">연체 ${odDays}일</span>`;
+      daysInfo = `<div class="lc-days red"><strong>${odDays}일</strong> 연체 중</div>`;
+    } else if (isSoon) {
+      cardClass = 'due-soon';
+      badge = `<span class="lc-badge badge-due-soon">반납 D-${remDays}</span>`;
+      daysInfo = `<div class="lc-days"><strong style="color:#e65100;">${remDays}일</strong> 후 반납예정</div>`;
+    } else {
+      badge = `<span class="lc-badge badge-ok">대출 중</span>`;
+      daysInfo = remDays >= 0
+        ? `<div class="lc-days"><strong>${remDays}일</strong> 후 반납예정</div>`
+        : '';
+    }
+
+    return `<div class="loan-card ${cardClass}">
+      <div class="lc-left">
+        <div class="lc-title">${e(l.bookTitle)}</div>
+        <div class="lc-code">${e(l.bookCode)}</div>
+        <div class="lc-dates">
+          <div class="lc-date"><span class="lbl">대출일</span>${fmt(l.loanDate)}</div>
+          <div class="lc-date"><span class="lbl">반납예정</span>${fmt(l.dueDate)}</div>
+        </div>
+      </div>
+      <div class="lc-right">
+        ${badge}
+        ${daysInfo}
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('currentLoans').innerHTML = html;
+  sec.style.display = 'block';
+}
+
+// ── 대출 이력 ──
+function renderHistory(allLoans) {
+  // 반납 완료된 것만
+  histData = allLoans.filter(l => l.status === '반납')
+    .sort((a,b) => (b.returnDate||'').localeCompare(a.returnDate||''));
+  histPage = 1;
+
+  document.getElementById('histCount').textContent = `총 ${histData.length}건`;
+  document.getElementById('secHistory').style.display = 'block';
+  renderHistPage();
+}
+
+function renderHistPage() {
+  const s = (histPage-1)*HIST_PS;
+  const pg = histData.slice(s, s+HIST_PS);
+  const tb = document.getElementById('histTbody');
+
+  if (!histData.length) {
+    tb.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="ico">📋</div>대출 이력이 없습니다.</div></td></tr>';
+    document.getElementById('histPages').innerHTML = '';
+    return;
+  }
+
+  tb.innerHTML = pg.map((l, i) => {
+    const od = l.overdueDays || 0;
+    const odChip = od > 0
+      ? `<span class="chip chip-od">${od}일 연체</span>`
+      : `<span class="chip chip-ok">정상</span>`;
+    const rowClass = od > 0 ? 'ret-od' : 'ret-ok';
+    return `<tr class="${rowClass}">
+      <td>${s+i+1}</td>
+      <td>${e(l.bookCode)}</td>
+      <td class="tdl">${e(l.bookTitle)}</td>
+      <td style="font-size:12px;">${fmt(l.loanDate)}</td>
+      <td style="font-size:12px;">${fmt(l.dueDate)}</td>
+      <td style="font-size:12px;">${fmt(l.returnDate)}</td>
+      <td>${odChip}</td>
+      <td><span class="chip chip-ok">반납완료</span></td>
+    </tr>`;
+  }).join('');
+
+  renderHistPages(Math.ceil(histData.length / HIST_PS));
+}
+
+function renderHistPages(total) {
+  const c = document.getElementById('histPages');
+  if (total <= 1) { c.innerHTML=''; return; }
+  let h='';
+  const st=Math.max(1,histPage-4), en=Math.min(total,histPage+4);
+  if (st>1) { h+=`<button class="pgb" onclick="goHist(1)">1</button>`; if(st>2) h+=`<span class="pgb" style="border:none;cursor:default;">…</span>`; }
+  for (let p=st;p<=en;p++) h+=`<button class="pgb${p===histPage?' on':''}" onclick="goHist(${p})">${p}</button>`;
+  if (en<total) { if(en<total-1) h+=`<span class="pgb" style="border:none;cursor:default;">…</span>`; h+=`<button class="pgb" onclick="goHist(${total})">${total}</button>`; }
+  c.innerHTML=h;
+}
+
+function goHist(p) {
+  histPage = p;
+  renderHistPage();
+  document.getElementById('secHistory').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── 흔들기 애니메이션 ──
+function shake(el) {
+  el.style.animation = 'none';
+  el.style.borderColor = '#c62828';
+  setTimeout(() => {
+    el.style.transition = 'border-color .3s';
+    el.style.borderColor = '#ddd';
+  }, 1000);
+  el.focus();
+}
+
+// ── 초기화 ──
+loadCfg();
+document.getElementById('memberCode').focus();
+</script>
+</body>
+</html>
